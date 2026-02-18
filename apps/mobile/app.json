@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Construction Daily",
+    "slug": "construction-daily",
+    "scheme": "construction-daily",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic"
+  }
+}

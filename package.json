@@ -1,0 +1,16 @@
+{
+  "name": "construction-daily-reporting-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace @cdr/backend run dev",
+    "dev:mobile": "npm --workspace @cdr/mobile run start",
+    "dev:web": "npm --workspace @cdr/web-dashboard run dev",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces"
+  }
+}
