@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER
+  PM
+  EXEC
+  SAFETY
+  ADMIN
+}
+
+enum HotItemStatus {
+  OPEN
+  CLOSED
+  DEFERRED
+}
+
+enum HotItemOrigin {
+  AI
+  MANUAL
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  users     User[]
+  projects  Project[]
+  createdAt DateTime  @default(now())
+}
+
+model User {
+  id                 String            @id @default(cuid())
+  name               String
+  email              String            @unique
+  passwordHash       String
+  role               Role
+  companyId          String
+  notificationToken  String?
+  company            Company           @relation(fields: [companyId], references: [id])
+  reports            DailyReport[]     @relation("SuperintendentReports")
+  assignedHotItems   HotItem[]         @relation("AssignedHotItems")
+  auditLogs          AuditLog[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  companyId       String
+  name            String
+  address         String
+  client          String
+  startDate       DateTime
+  endDate         DateTime?
+  company         Company       @relation(fields: [companyId], references: [id])
+  reports         DailyReport[]
+  hotItems        HotItem[]
+  createdAt       DateTime      @default(now())
+}
+
+model DailyReport {
+  id                  String            @id @default(cuid())
+  projectId           String
+  date                DateTime
+  superintendentId    String
+  temperature         Int?
+  weather             String
+  shiftDuration       Float?
+  summary             String?
+  aiSummary           String?
+  riskScore           Int               @default(0)
+  delays              String[]
+  safetyIncidents     Boolean           @default(false)
+  safetyDescription   String?
+  nearMisses          String?
+  toolboxTalkTopic    String?
+  lockedAt            DateTime?
+  project             Project           @relation(fields: [projectId], references: [id])
+  superintendent      User              @relation("SuperintendentReports", fields: [superintendentId], references: [id])
+  laborEntries        LaborEntry[]
+  equipmentEntries    EquipmentEntry[]
+  materialEntries     MaterialEntry[]
+  photos              Photo[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([projectId, date])
+}
+
+model LaborEntry {
+  id          String      @id @default(cuid())
+  reportId    String
+  company     String
+  trade       String
+  workers     Int
+  hours       Float
+  overtime    Float       @default(0)
+  report      DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model EquipmentEntry {
+  id            String      @id @default(cuid())
+  reportId      String
+  equipmentType String
+  hours         Float
+  ownership     String
+  report        DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model MaterialEntry {
+  id          String      @id @default(cuid())
+  reportId    String
+  supplier    String
+  description String
+  quantity    Float
+  poNumber    String
+  report      DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model Photo {
+  id           String      @id @default(cuid())
+  reportId     String
+  imageUrl     String
+  aiRiskScore  Int         @default(0)
+  aiFlags      String[]
+  aiCaption    String?
+  annotations  Json?
+  tags         String[]
+  timestamp    DateTime    @default(now())
+  report       DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  aiScanLog    AIScanLog?
+}
+
+model AIScanLog {
+  id             String   @id @default(cuid())
+  photoId         String   @unique
+  modelVersion    String
+  rawResult       Json
+  immutableHash   String
+  createdAt       DateTime @default(now())
+  photo           Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+}
+
+model HotItem {
+  id            String        @id @default(cuid())
+  projectId     String
+  createdFrom   HotItemOrigin
+  description   String
+  assignedToId  String?
+  status        HotItemStatus @default(OPEN)
+  dueDate       DateTime?
+  riskScore     Int           @default(0)
+  project       Project       @relation(fields: [projectId], references: [id])
+  assignedTo    User?         @relation("AssignedHotItems", fields: [assignedToId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entity     String
+  entityId   String
+  meta       Json?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
